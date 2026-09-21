@@ -1,0 +1,13 @@
+{
+	"name": "ls_databricks",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-7405615413910519.19.azuredatabricks.net",
+			"authentication": "MSI",
+			"workspaceResourceId": "/subscriptions/ad6a087c-bf6e-4482-a53d-e3bcb4085185/resourceGroups/rg-airquality-dev/providers/Microsoft.Databricks/workspaces/dbw-airquality-dev"
+		}
+	}
+}

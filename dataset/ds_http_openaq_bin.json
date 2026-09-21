@@ -1,0 +1,32 @@
+{
+	"name": "ds_http_openaq_bin",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_http_openaq",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"sensor_id": {
+				"type": "string"
+			},
+			"datetime_from": {
+				"type": "string"
+			},
+			"datetime_to": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "HttpServerLocation",
+				"relativeUrl": {
+					"value": "@concat('v3/sensors/', dataset().sensor_id, '/hours?datetime_from=', dataset().datetime_from, '&datetime_to=', dataset().datetime_to, '&limit=1000')",
+					"type": "Expression"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,75 @@
+{
+	"name": "pl_daily_airquality",
+	"properties": {
+		"activities": [
+			{
+				"name": "run_weather_ingest",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_master_openmeteo_hist",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "run_openaq_ingest",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_master_openaq",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "run_transform",
+				"type": "DatabricksJob",
+				"dependsOn": [
+					{
+						"activity": "run_weather_ingest",
+						"dependencyConditions": [
+							"Completed"
+						]
+					},
+					{
+						"activity": "run_openaq_ingest",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"jobId": "320405445332468"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_databricks",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-09-20T17:17:49Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

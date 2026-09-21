@@ -1,0 +1,142 @@
+{
+	"name": "pl_ingest_openmeteo_hist_city",
+	"properties": {
+		"activities": [
+			{
+				"name": "copy_archive_to_bronze",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "BinarySource",
+						"storeSettings": {
+							"type": "HttpReadSettings",
+							"requestMethod": "GET"
+						},
+						"formatSettings": {
+							"type": "BinaryReadSettings"
+						}
+					},
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_http_openmeteo_archive_bin",
+						"type": "DatasetReference",
+						"parameters": {
+							"latitude": {
+								"value": "@pipeline().parameters.latitude",
+								"type": "Expression"
+							},
+							"longitude": {
+								"value": "@pipeline().parameters.longitude",
+								"type": "Expression"
+							},
+							"start_date": {
+								"value": "@pipeline().parameters.start_date",
+								"type": "Expression"
+							},
+							"end_date": {
+								"value": "@pipeline().parameters.end_date",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_adls_bronze_bin",
+						"type": "DatasetReference",
+						"parameters": {
+							"folder_path": {
+								"value": "@concat('open_meteo_hist/', pipeline().parameters.city, '/', formatDateTime(pipeline().TriggerTime, 'yyyy/MM/dd'))",
+								"type": "Expression"
+							},
+							"file_name": {
+								"value": "@concat('weather_', pipeline().parameters.city, '_', replace(pipeline().parameters.start_date, '-', ''), '_', replace(pipeline().parameters.end_date, '-', ''), '.json')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "sp_update_watermark",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "copy_archive_to_bronze",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_update_watermark]",
+					"storedProcedureParameters": {
+						"city_name": {
+							"value": {
+								"value": "@pipeline().parameters.city",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"loaded_until": {
+							"value": {
+								"value": "@pipeline().parameters.end_date",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_config",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"city": {
+				"type": "string"
+			},
+			"latitude": {
+				"type": "string"
+			},
+			"longitude": {
+				"type": "string"
+			},
+			"start_date": {
+				"type": "string"
+			},
+			"end_date": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-09-20T11:52:56Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

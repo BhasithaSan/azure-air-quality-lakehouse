@@ -1,0 +1,97 @@
+{
+	"name": "pl_master_openmeteo_hist",
+	"properties": {
+		"activities": [
+			{
+				"name": "lkp_get_cities",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT\n    city_name,\n    CAST(latitude  AS VARCHAR(20)) AS latitude,\n    CAST(longitude AS VARCHAR(20)) AS longitude,\n    CONVERT(VARCHAR(10), DATEADD(DAY, 1, last_loaded_date), 23)             AS start_date,\n    CONVERT(VARCHAR(10), DATEADD(DAY, -5, CAST(GETUTCDATE() AS DATE)), 23) AS end_date\nFROM dbo.config_cities\nWHERE is_active = 1\n  AND DATEADD(DAY, 1, last_loaded_date) <= DATEADD(DAY, -5, CAST(GETUTCDATE() AS DATE));",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_sql_config",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "foreach_city",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lkp_get_cities",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lkp_get_cities').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 4,
+					"activities": [
+						{
+							"name": "run_single_city",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_ingest_openmeteo_hist_city",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"city": {
+										"value": "@item().city_name",
+										"type": "Expression"
+									},
+									"latitude": {
+										"value": "@string(item().latitude)",
+										"type": "Expression"
+									},
+									"longitude": {
+										"value": "@string(item().longitude)",
+										"type": "Expression"
+									},
+									"start_date": {
+										"value": "@item().start_date",
+										"type": "Expression"
+									},
+									"end_date": {
+										"value": "@item().end_date",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-09-20T11:52:56Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

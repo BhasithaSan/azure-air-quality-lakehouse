@@ -1,0 +1,17 @@
+{
+	"name": "trg_daily_8pm",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2026-09-21T20:00:00",
+				"timeZone": "Sri Lanka Standard Time"
+			}
+		}
+	}
+}

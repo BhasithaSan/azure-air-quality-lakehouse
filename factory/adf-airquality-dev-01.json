@@ -1,0 +1,15 @@
+{
+	"name": "adf-airquality-dev-01",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "a937907b-7702-417f-8e24-0b1c226e4d1f",
+		"tenantId": "b33054a3-4cad-4253-86c5-0614cbedb692"
+	}
+}

@@ -1,0 +1,89 @@
+{
+	"name": "pl_master_openmeteo",
+	"properties": {
+		"activities": [
+			{
+				"name": "lkp_get_cities",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "    SELECT city_name, latitude, longitude\n    FROM dbo.config_cities\n    WHERE is_active = 1",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_sql_config",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "foreach_city",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lkp_get_cities",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lkp_get_cities').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 4,
+					"activities": [
+						{
+							"name": "run_single_city",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"policy": {
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_ingest_openmeteo_single",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"city": {
+										"value": "@item().city_name",
+										"type": "Expression"
+									},
+									"latitude": {
+										"value": "@string(item().latitude)",
+										"type": "Expression"
+									},
+									"longitude": {
+										"value": "@string(item().longitude)",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-09-20T06:35:14Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

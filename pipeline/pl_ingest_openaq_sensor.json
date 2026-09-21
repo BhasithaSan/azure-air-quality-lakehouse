@@ -1,0 +1,173 @@
+{
+	"name": "pl_ingest_openaq_sensor",
+	"properties": {
+		"activities": [
+			{
+				"name": "get_api_key",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": {
+						"value": "https://kv-airquality-dev-01.vault.azure.net/secrets/openaq-api-key?api-version=7.4",
+						"type": "Expression"
+					},
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "copy_openaq_to_bronze",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "get_api_key",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": true
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "BinarySource",
+						"storeSettings": {
+							"type": "HttpReadSettings",
+							"requestMethod": "GET",
+							"additionalHeaders": {
+								"value": "@concat('X-API-Key: ', activity('get_api_key').output.value)",
+								"type": "Expression"
+							}
+						},
+						"formatSettings": {
+							"type": "BinaryReadSettings"
+						}
+					},
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_http_openaq_bin",
+						"type": "DatasetReference",
+						"parameters": {
+							"sensor_id": {
+								"value": "@pipeline().parameters.sensor_id",
+								"type": "Expression"
+							},
+							"datetime_from": {
+								"value": "@pipeline().parameters.start_date",
+								"type": "Expression"
+							},
+							"datetime_to": {
+								"value": "@pipeline().parameters.datetime_to",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_adls_bronze_bin",
+						"type": "DatasetReference",
+						"parameters": {
+							"folder_path": {
+								"value": "@concat('openaq/', pipeline().parameters.city, '/', formatDateTime(pipeline().TriggerTime, 'yyyy/MM/dd'))",
+								"type": "Expression"
+							},
+							"file_name": {
+								"value": "@concat('pm25_', pipeline().parameters.city, '_', pipeline().parameters.sensor_id, '_', replace(pipeline().parameters.start_date, '-', ''), '_', replace(pipeline().parameters.end_date, '-', ''), '.json')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "sp_update_openaq_watermark",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "copy_openaq_to_bronze",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_update_openaq_watermark]",
+					"storedProcedureParameters": {
+						"loaded_until": {
+							"value": {
+								"value": "@pipeline().parameters.end_date",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"sensor_id": {
+							"value": {
+								"value": "@pipeline().parameters.sensor_id",
+								"type": "Expression"
+							},
+							"type": "Int64"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_config",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"sensor_id": {
+				"type": "string"
+			},
+			"city": {
+				"type": "string"
+			},
+			"start_date": {
+				"type": "string"
+			},
+			"end_date": {
+				"type": "string"
+			},
+			"datetime_to": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-09-20T13:57:04Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

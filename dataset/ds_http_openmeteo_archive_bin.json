@@ -1,0 +1,35 @@
+{
+	"name": "ds_http_openmeteo_archive_bin",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_http_openmeteo_archive",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"latitude": {
+				"type": "string"
+			},
+			"longitude": {
+				"type": "string"
+			},
+			"start_date": {
+				"type": "string"
+			},
+			"end_date": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "HttpServerLocation",
+				"relativeUrl": {
+					"value": "@concat('v1/archive?latitude=', dataset().latitude, '&longitude=', dataset().longitude, '&start_date=', dataset().start_date, '&end_date=', dataset().end_date, '&hourly=temperature_2m,relative_humidity_2m')",
+					"type": "Expression"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
