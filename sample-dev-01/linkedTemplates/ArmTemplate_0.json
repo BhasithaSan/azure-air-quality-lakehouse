@@ -1,0 +1,1198 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "sample-dev-01"
+		},
+		"ls_adls_lake_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stairqualitydev01.dfs.core.windows.net/"
+		},
+		"ls_http_openaq_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://api.openaq.org/"
+		},
+		"ls_http_openmeteo_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://api.open-meteo.com/"
+		},
+		"ls_http_openmeteo_archive_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://archive-api.open-meteo.com/"
+		},
+		"ls_sql_config_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "sql-airquality-dev-01.database.windows.net"
+		},
+		"ls_sql_config_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "sqldb-airquality-config"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_alert_test')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Fail1",
+						"type": "Fail",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"message": "Test failure for alert practice",
+							"errorCode": "500"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_adls_lake')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_adls_lake_properties_typeProperties_url')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_databricks')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-7405615413910519.19.azuredatabricks.net",
+					"authentication": "MSI",
+					"workspaceResourceId": "/subscriptions/ad6a087c-bf6e-4482-a53d-e3bcb4085185/resourceGroups/rg-airquality-dev/providers/Microsoft.Databricks/workspaces/dbw-airquality-dev"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_http_openaq')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "HttpServer",
+				"typeProperties": {
+					"url": "[parameters('ls_http_openaq_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_http_openmeteo')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "HttpServer",
+				"typeProperties": {
+					"url": "[parameters('ls_http_openmeteo_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_http_openmeteo_archive')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "HttpServer",
+				"typeProperties": {
+					"url": "[parameters('ls_http_openmeteo_archive_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sql_config')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"server": "[parameters('ls_sql_config_properties_typeProperties_server')]",
+					"database": "[parameters('ls_sql_config_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": false,
+					"authenticationType": "SystemAssignedManagedIdentity"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/trg_daily_8pm')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2026-09-21T20:00:00",
+						"timeZone": "Sri Lanka Standard Time"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_adls_bronze_bin')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls_lake",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"folder_path": {
+						"type": "string"
+					},
+					"file_name": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().file_name",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folder_path",
+							"type": "Expression"
+						},
+						"fileSystem": "bronze"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_lake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_http_openaq_bin')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_http_openaq",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"sensor_id": {
+						"type": "string"
+					},
+					"datetime_from": {
+						"type": "string"
+					},
+					"datetime_to": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "HttpServerLocation",
+						"relativeUrl": {
+							"value": "@concat('v3/sensors/', dataset().sensor_id, '/hours?datetime_from=', dataset().datetime_from, '&datetime_to=', dataset().datetime_to, '&limit=1000')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_http_openaq')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_http_openmeteo_archive_bin')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_http_openmeteo_archive",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"latitude": {
+						"type": "string"
+					},
+					"longitude": {
+						"type": "string"
+					},
+					"start_date": {
+						"type": "string"
+					},
+					"end_date": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "HttpServerLocation",
+						"relativeUrl": {
+							"value": "@concat('v1/archive?latitude=', dataset().latitude, '&longitude=', dataset().longitude, '&start_date=', dataset().start_date, '&end_date=', dataset().end_date, '&hourly=temperature_2m,relative_humidity_2m')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_http_openmeteo_archive')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_http_openmeteo_bin')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "open_meteo_dataset",
+				"linkedServiceName": {
+					"referenceName": "ls_http_openmeteo",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"latitude": {
+						"type": "string"
+					},
+					"longitude": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "HttpServerLocation",
+						"relativeUrl": {
+							"value": "@concat('v1/forecast?latitude=', dataset().latitude, '&longitude=', dataset().longitude, '&hourly=temperature_2m,relative_humidity_2m')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_http_openmeteo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_sql_config')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sql_config",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "city_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "city_name",
+						"type": "varchar"
+					},
+					{
+						"name": "latitude",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 4
+					},
+					{
+						"name": "longitude",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 4
+					},
+					{
+						"name": "is_active",
+						"type": "bit"
+					},
+					{
+						"name": "last_loaded_date",
+						"type": "date"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "config_cities"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_config')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_ingest_openaq_sensor')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "get_api_key",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": true,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "GET",
+							"headers": {},
+							"url": {
+								"value": "https://kv-airquality-dev-01.vault.azure.net/secrets/openaq-api-key?api-version=7.4",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "copy_openaq_to_bronze",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "get_api_key",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": true
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "BinarySource",
+								"storeSettings": {
+									"type": "HttpReadSettings",
+									"requestMethod": "GET",
+									"additionalHeaders": {
+										"value": "@concat('X-API-Key: ', activity('get_api_key').output.value)",
+										"type": "Expression"
+									}
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							},
+							"sink": {
+								"type": "BinarySink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_http_openaq_bin",
+								"type": "DatasetReference",
+								"parameters": {
+									"sensor_id": {
+										"value": "@pipeline().parameters.sensor_id",
+										"type": "Expression"
+									},
+									"datetime_from": {
+										"value": "@pipeline().parameters.start_date",
+										"type": "Expression"
+									},
+									"datetime_to": {
+										"value": "@pipeline().parameters.datetime_to",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_adls_bronze_bin",
+								"type": "DatasetReference",
+								"parameters": {
+									"folder_path": {
+										"value": "@concat('openaq/', pipeline().parameters.city, '/', formatDateTime(pipeline().TriggerTime, 'yyyy/MM/dd'))",
+										"type": "Expression"
+									},
+									"file_name": {
+										"value": "@concat('pm25_', pipeline().parameters.city, '_', pipeline().parameters.sensor_id, '_', replace(pipeline().parameters.start_date, '-', ''), '_', replace(pipeline().parameters.end_date, '-', ''), '.json')",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "sp_update_openaq_watermark",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "copy_openaq_to_bronze",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_update_openaq_watermark]",
+							"storedProcedureParameters": {
+								"loaded_until": {
+									"value": {
+										"value": "@pipeline().parameters.end_date",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"sensor_id": {
+									"value": {
+										"value": "@pipeline().parameters.sensor_id",
+										"type": "Expression"
+									},
+									"type": "Int64"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_sql_config",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"sensor_id": {
+						"type": "string"
+					},
+					"city": {
+						"type": "string"
+					},
+					"start_date": {
+						"type": "string"
+					},
+					"end_date": {
+						"type": "string"
+					},
+					"datetime_to": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-09-20T13:57:04Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_http_openaq_bin')]",
+				"[concat(variables('factoryId'), '/datasets/ds_adls_bronze_bin')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_config')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_ingest_openmeteo_hist_city')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "copy_archive_to_bronze",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "BinarySource",
+								"storeSettings": {
+									"type": "HttpReadSettings",
+									"requestMethod": "GET"
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							},
+							"sink": {
+								"type": "BinarySink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_http_openmeteo_archive_bin",
+								"type": "DatasetReference",
+								"parameters": {
+									"latitude": {
+										"value": "@pipeline().parameters.latitude",
+										"type": "Expression"
+									},
+									"longitude": {
+										"value": "@pipeline().parameters.longitude",
+										"type": "Expression"
+									},
+									"start_date": {
+										"value": "@pipeline().parameters.start_date",
+										"type": "Expression"
+									},
+									"end_date": {
+										"value": "@pipeline().parameters.end_date",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_adls_bronze_bin",
+								"type": "DatasetReference",
+								"parameters": {
+									"folder_path": {
+										"value": "@concat('open_meteo_hist/', pipeline().parameters.city, '/', formatDateTime(pipeline().TriggerTime, 'yyyy/MM/dd'))",
+										"type": "Expression"
+									},
+									"file_name": {
+										"value": "@concat('weather_', pipeline().parameters.city, '_', replace(pipeline().parameters.start_date, '-', ''), '_', replace(pipeline().parameters.end_date, '-', ''), '.json')",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "sp_update_watermark",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "copy_archive_to_bronze",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_update_watermark]",
+							"storedProcedureParameters": {
+								"city_name": {
+									"value": {
+										"value": "@pipeline().parameters.city",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"loaded_until": {
+									"value": {
+										"value": "@pipeline().parameters.end_date",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_sql_config",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"city": {
+						"type": "string"
+					},
+					"latitude": {
+						"type": "string"
+					},
+					"longitude": {
+						"type": "string"
+					},
+					"start_date": {
+						"type": "string"
+					},
+					"end_date": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-09-20T11:52:56Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_http_openmeteo_archive_bin')]",
+				"[concat(variables('factoryId'), '/datasets/ds_adls_bronze_bin')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_sql_config')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_ingest_openmeteo_single')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "copy_openmeteo_to_bronze",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "BinarySource",
+								"storeSettings": {
+									"type": "HttpReadSettings",
+									"requestMethod": "GET"
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							},
+							"sink": {
+								"type": "BinarySink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_http_openmeteo_bin",
+								"type": "DatasetReference",
+								"parameters": {
+									"latitude": {
+										"value": "@pipeline().parameters.latitude",
+										"type": "Expression"
+									},
+									"longitude": {
+										"value": "@pipeline().parameters.longitude",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_adls_bronze_bin",
+								"type": "DatasetReference",
+								"parameters": {
+									"folder_path": {
+										"value": "@concat('open_meteo/', pipeline().parameters.city, '/', formatDateTime(pipeline().TriggerTime, 'yyyy/MM/dd'))",
+										"type": "Expression"
+									},
+									"file_name": {
+										"value": "@concat('weather_', pipeline().parameters.city, '_', formatDateTime(pipeline().TriggerTime, 'yyyyMMdd_HHmmss'), '.json')",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"city": {
+						"type": "string",
+						"defaultValue": "colombo"
+					},
+					"latitude": {
+						"type": "string",
+						"defaultValue": "6.93"
+					},
+					"longitude": {
+						"type": "string",
+						"defaultValue": "79.85"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-09-19T16:35:26Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_http_openmeteo_bin')]",
+				"[concat(variables('factoryId'), '/datasets/ds_adls_bronze_bin')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_master_openaq')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "lkp_get_cities",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT\n    CAST(s.sensor_id AS VARCHAR(20))                                  AS sensor_id,\n    s.city_name,\n    CONVERT(VARCHAR(10), DATEADD(DAY, 1, s.last_loaded_date), 23)     AS start_date,\n    CONVERT(VARCHAR(10), w.end_date, 23)                              AS end_date,\n    CONVERT(VARCHAR(10), DATEADD(DAY, 1, w.end_date), 23)             AS datetime_to\nFROM dbo.config_openaq_sensors AS s\nCROSS APPLY (\n    SELECT CASE\n        WHEN DATEADD(DAY, 30, s.last_loaded_date) < DATEADD(DAY, -1, CAST(GETUTCDATE() AS DATE))\n        THEN DATEADD(DAY, 30, s.last_loaded_date)\n        ELSE DATEADD(DAY, -1, CAST(GETUTCDATE() AS DATE))\n    END AS end_date\n) AS w\nWHERE s.is_active = 1\n  AND DATEADD(DAY, 1, s.last_loaded_date) <= w.end_date;",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_config",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "foreach_city",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "lkp_get_cities",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('lkp_get_cities').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "run_single_city",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_ingest_openaq_sensor",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"sensor_id": {
+												"value": "@item().sensor_id",
+												"type": "Expression"
+											},
+											"city": {
+												"value": "@item().city_name",
+												"type": "Expression"
+											},
+											"start_date": {
+												"value": "@item().start_date",
+												"type": "Expression"
+											},
+											"end_date": {
+												"value": "@item().end_date",
+												"type": "Expression"
+											},
+											"datetime_to": {
+												"value": "@item().datetime_to",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-09-20T13:57:04Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_sql_config')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_ingest_openaq_sensor')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_master_openmeteo')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "lkp_get_cities",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "    SELECT city_name, latitude, longitude\n    FROM dbo.config_cities\n    WHERE is_active = 1",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_config",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "foreach_city",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "lkp_get_cities",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('lkp_get_cities').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "run_single_city",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_ingest_openmeteo_single",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"city": {
+												"value": "@item().city_name",
+												"type": "Expression"
+											},
+											"latitude": {
+												"value": "@string(item().latitude)",
+												"type": "Expression"
+											},
+											"longitude": {
+												"value": "@string(item().longitude)",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-09-20T06:35:14Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_sql_config')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_ingest_openmeteo_single')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_master_openmeteo_hist')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "lkp_get_cities",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT\n    city_name,\n    CAST(latitude  AS VARCHAR(20)) AS latitude,\n    CAST(longitude AS VARCHAR(20)) AS longitude,\n    CONVERT(VARCHAR(10), DATEADD(DAY, 1, last_loaded_date), 23)             AS start_date,\n    CONVERT(VARCHAR(10), DATEADD(DAY, -5, CAST(GETUTCDATE() AS DATE)), 23) AS end_date\nFROM dbo.config_cities\nWHERE is_active = 1\n  AND DATEADD(DAY, 1, last_loaded_date) <= DATEADD(DAY, -5, CAST(GETUTCDATE() AS DATE));",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_config",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "foreach_city",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "lkp_get_cities",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('lkp_get_cities').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "run_single_city",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"policy": {
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_ingest_openmeteo_hist_city",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"city": {
+												"value": "@item().city_name",
+												"type": "Expression"
+											},
+											"latitude": {
+												"value": "@string(item().latitude)",
+												"type": "Expression"
+											},
+											"longitude": {
+												"value": "@string(item().longitude)",
+												"type": "Expression"
+											},
+											"start_date": {
+												"value": "@item().start_date",
+												"type": "Expression"
+											},
+											"end_date": {
+												"value": "@item().end_date",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-09-20T11:52:56Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_sql_config')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_ingest_openmeteo_hist_city')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_daily_airquality')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "run_weather_ingest",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_master_openmeteo_hist",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "run_openaq_ingest",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_master_openaq",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "run_transform",
+						"type": "DatabricksJob",
+						"dependsOn": [
+							{
+								"activity": "run_weather_ingest",
+								"dependencyConditions": [
+									"Completed"
+								]
+							},
+							{
+								"activity": "run_openaq_ingest",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"jobId": "320405445332468"
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_databricks",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-09-20T17:17:49Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_master_openmeteo_hist')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_master_openaq')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_databricks')]"
+			]
+		}
+	]
+}

@@ -1,0 +1,33 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "sample-dev-01"
+		},
+		"ls_adls_lake_properties_typeProperties_url": {
+			"value": "https://stairqualitydev01.dfs.core.windows.net/"
+		},
+		"ls_http_openaq_properties_typeProperties_url": {
+			"value": "https://api.openaq.org/"
+		},
+		"ls_http_openmeteo_properties_typeProperties_url": {
+			"value": "https://api.open-meteo.com/"
+		},
+		"ls_http_openmeteo_archive_properties_typeProperties_url": {
+			"value": "https://archive-api.open-meteo.com/"
+		},
+		"ls_sql_config_properties_typeProperties_server": {
+			"value": "sql-airquality-dev-01.database.windows.net"
+		},
+		"ls_sql_config_properties_typeProperties_database": {
+			"value": "sqldb-airquality-config"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}
