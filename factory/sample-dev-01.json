@@ -1,0 +1,15 @@
+{
+	"name": "sample-dev-01",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "indiasouthcentral",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "aed90d85-357c-46bf-876b-01481d8c9003",
+		"tenantId": "aa232db2-7a78-4414-a529-33db9124cba7"
+	}
+}
